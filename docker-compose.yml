@@ -32,38 +32,51 @@ services:
     device_cgroup_rules:
       - 'c 189:* rwm'
     ports:
-      - 8080:80 # Expose web interface
-      - 9273-9274:9273-9274 # Expose stats to Prometheus           
+      - 8080:80               # Web interface
+      - 9273-9274:9273-9274   # Prometheus metrics        
     environment:
       # --------------------------------------------------
       # General Parameters:
       - LOGLEVEL=error
       - TZ=${FEEDER_TZ}
       - PROMETHEUS_ENABLE=true
-      - TAR1090_ENABLE_AC_DB=true
+      
       # --------------------------------------------------
       # SDR related parameters:
       - READSB_DEVICE_TYPE=rtlsdr
       - READSB_RTLSDR_DEVICE=${ADSB_SDR_SERIAL}
       - READSB_RTLSDR_PPM=${ADSB_SDR_PPM}
+      
       # --------------------------------------------------
-      # ReadSB/Decoder parameters:
+      # Readsb/Decoder parameters:
       - READSB_LAT=${FEEDER_LAT}
       - READSB_LON=${FEEDER_LONG}
       - READSB_ALT=${FEEDER_ALT_M}m
       - READSB_GAIN=${ADSB_SDR_GAIN}
       - READSB_RX_LOCATION_ACCURACY=2
       - READSB_STATS_RANGE=true
+      
       # --------------------------------------------------
       # Sources and Aggregator connections:
+      # Feed to multiple aggregators + collect MLAT from piaware
       # NOTE: Make sure that each line ends with a semicolon ";" except the last line
       - ULTRAFEEDER_CONFIG=
+          adsb,feed.adsb.lol,30004,beast_reduce_plus_out,uuid=${ULTRAFEEDER_UUID};
+          mlat,feed.adsb.lol,31090;
+          adsb,feed.planespotters.net,30004,beast_reduce_plus_out;
+          mlat,mlat.planespotters.net,31090;
+          adsb,in.adsb.one,30004,beast_reduce_plus_out;
+          mlat,in.adsb.one,31090;
+          adsb,feed.adsb.fi,30004,beast_reduce_plus_out;
+          mlat,feed.adsb.fi,31090;
           mlathub,piaware,30105,beast_in
+      
       # --------------------------------------------------
       # General Environment Config
       - UUID=${ULTRAFEEDER_UUID}
       - MLATHUB_DISABLE=false
-      - MLAT_USER=neighborhoodfeeder
+      - MLAT_USER=${FEEDER_NAME}
+      
       # --------------------------------------------------
       # TAR1090 (Map Web Page) parameters:
       - UPDATE_TAR1090=true
@@ -82,10 +95,12 @@ services:
       - TAR1090_RANGERINGSDISTANCES=50,100,150,200
       - TAR1090_RANGERINGSCOLORS='#1A237E','#0D47A1','#42A5F5','#64B5F6'
       - TAR1090_USEROUTEAPI=true
+      
       # --------------------------------------------------
       # GRAPHS1090 (Decoder and System Status Web Page) parameters:
       - GRAPHS1090_DARKMODE=true
       # --------------------------------------------------
+      
     volumes:
       - /home/dev/adsbfeeder/ultrafeeder/globe_history:/var/globe_history
       - /home/dev/adsbfeeder/ultrafeeder/graphs1090:/var/lib/collectd
@@ -100,7 +115,8 @@ services:
     image: ghcr.io/sdr-enthusiasts/docker-piaware:latest
     tty: true
     container_name: piaware
-    restart: always
+    hostname: piaware
+    restart: unless-stopped
     ports:
       - 8081:8080
     environment:
@@ -117,12 +133,14 @@ services:
     image: ghcr.io/sdr-enthusiasts/docker-flightradar24:latest
     tty: true
     container_name: fr24
-    restart: always
+    hostname: fr24
+    restart: unless-stopped
     ports:
       - 8754:8754
     environment:
       - BEASTHOST=ultrafeeder
       - FR24KEY=${FR24_SHARING_KEY}
+      - TZ=${FEEDER_TZ}
     tmpfs:
       - /var/log
 
@@ -155,7 +173,7 @@ services:
       - grafana:/var/lib/grafana  
 
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:latest
     container_name: prometheus
     hostname: prometheus
     restart: unless-stopped
