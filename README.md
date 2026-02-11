@@ -23,3 +23,13 @@ NOTE: Ultrafeeder image does not come with telegraf, must use the `telegraf` ima
 
 Metrics sent to Prometheus, using Grafana for visualization and monitoring
 
+## URLs
+
+- Main Map: http://your-server-ip:8080
+- Graphs1090: http://your-server-ip:8080/graphs1090/
+- Heatmap: http://your-server-ip:8080/?heatmap
+- Replay: http://your-server-ip:8080/?replay
+- PiAware Stats: http://your-server-ip:8081
+- FR24 Stats: http://your-server-ip:8754
+- Grafana: http://your-server-ip:3000 (login: admin/admin)
+- Prometheus: http://your-server-ip:9090
